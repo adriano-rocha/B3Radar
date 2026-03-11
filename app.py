@@ -2,12 +2,10 @@ import streamlit as st
 import requests
 import pandas as pd
 import time
-from dotenv import load_dotenv
 import os
 
 # Carrega as variáveis do arquivo .env
-load_dotenv()
-API_KEY = os.getenv("HG_API_KEY")
+API_KEY = st.secrets.get("HG_API_KEY") or os.environ.get("HG_API_KEY")
 
 st.set_page_config(page_title="B3Radar", page_icon="📡", layout="wide")
 st.title("📡 B3Radar — Dashboard B3")
