@@ -1,11 +1,15 @@
 import streamlit as st
 import requests
 import pandas as pd
+import yfinance as yf
 import time
 import os
 
-# Carrega as variáveis do arquivo .env
-API_KEY = st.secrets.get("HG_API_KEY") or os.environ.get("HG_API_KEY")
+# Carrega a API Key (apenas para o Dólar via HG Brasil)
+try:
+    API_KEY = st.secrets.get("HG_API_KEY")
+except Exception:
+    API_KEY = os.environ.get("HG_API_KEY")
 
 st.set_page_config(page_title="B3Radar", page_icon="📡", layout="wide")
 st.title("📡 B3Radar — Dashboard B3")
@@ -18,8 +22,11 @@ st.markdown("---")
 BLUE_CHIPS = [
     "PETR4", "VALE3", "ITUB4", "BBDC4",
     "WEGE3", "MGLU3", "BBAS3", "ITSA4",
-    "RENT3", "ABEV3", "ELET3", "SUZB3",
-    "RDOR3", "EQTL3", "HAPV3"
+    "RENT3", "ABEV3", "ELET6", "SUZB3",
+    "RDOR3", "EQTL3", "HAPV3","BPAC11",
+    "RADL3", "VIVT3", "TOTS3", "PRIO3",
+    "CSAN3", "EMBR3", "LREN3", "CCRO3",
+    "SBSP3", "BBSE3", "JBSS3", "KLBN11"
 ]
 
 # ─────────────────────────────────────────────
@@ -27,8 +34,24 @@ BLUE_CHIPS = [
 # ─────────────────────────────────────────────
 
 @st.cache_data(ttl=300)
-def get_finance_data():
-    """Busca IBOV, Dólar e ações via HG Brasil Finance API."""
+def get_ibov():
+    """Busca dados do IBOVESPA via yfinance."""
+    try:
+        ticker = yf.Ticker("^BVSP")
+        hist = ticker.history(period="2d")
+        if hist.empty:
+            return {"preco": 0.0, "variacao": 0.0}
+        preco_atual = hist["Close"].iloc[-1]
+        preco_anterior = hist["Close"].iloc[-2] if len(hist) > 1 else preco_atual
+        variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
+        return {"preco": preco_atual, "variacao": variacao}
+    except Exception:
+        return {"preco": 0.0, "variacao": 0.0}
+
+
+@st.cache_data(ttl=300)
+def get_dolar():
+    """Busca dados do Dólar via HG Brasil."""
     try:
         url = (
             f"https://api.hgbrasil.com/finance"
@@ -38,61 +61,7 @@ def get_finance_data():
         )
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
-        return resp.json()
-    except Exception as e:
-        st.error(f"Erro ao buscar dados da API: {e}")
-        return None
-
-
-@st.cache_data(ttl=600)
-def get_historico(simbolo):
-    """Busca histórico de preços dos últimos 30 dias via HG Brasil."""
-    try:
-        url = (
-            f"https://api.hgbrasil.com/finance/stock_price"
-            f"?key={API_KEY}"
-            f"&symbol={simbolo}"
-            f"&date_start=30"
-        )
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        dados = resp.json()
-        resultados = dados["results"][simbolo]["prices"]
-        df = pd.DataFrame(resultados)
-        df["date"] = pd.to_datetime(df["date"])
-        df = df.sort_values("date").set_index("date")
-        return df[["price"]]
-    except Exception:
-        return None
-
-
-def extrair_acao(data, simbolo):
-    """Extrai preço e variação de uma ação do retorno da API."""
-    try:
-        acao = data["results"]["stocks"][simbolo]
-        return {
-            "preco": acao.get("price", 0.0),
-            "variacao": acao.get("change_percent", 0.0),
-        }
-    except Exception:
-        return {"preco": 0.0, "variacao": 0.0}
-
-
-def extrair_ibov(data):
-    """Extrai dados do Ibovespa."""
-    try:
-        ibov = data["results"]["indexes"]["IBOVESPA"]
-        return {
-            "preco": ibov["points"],
-            "variacao": ibov["change_percent"],
-        }
-    except Exception:
-        return {"preco": 0.0, "variacao": 0.0}
-
-
-def extrair_dolar(data):
-    """Extrai dados do Dólar (USD)."""
-    try:
+        data = resp.json()
         dolar = data["results"]["currencies"]["USD"]
         return {
             "preco": dolar["buy"],
@@ -102,19 +71,56 @@ def extrair_dolar(data):
         return {"preco": 0.0, "variacao": 0.0}
 
 
+@st.cache_data(ttl=300)
+def get_acoes(simbolos):
+    """Busca preço e variação das ações via yfinance."""
+    tickers = [s + ".SA" for s in simbolos]
+    resultado = {}
+    try:
+        dados = yf.download(tickers, period="2d", progress=False, auto_adjust=True)
+        close = dados["Close"]
+        for simbolo, ticker in zip(simbolos, tickers):
+            try:
+                serie = close[ticker].dropna()
+                if len(serie) >= 2:
+                    preco = serie.iloc[-1]
+                    anterior = serie.iloc[-2]
+                    variacao = ((preco - anterior) / anterior) * 100
+                elif len(serie) == 1:
+                    preco = serie.iloc[-1]
+                    variacao = 0.0
+                else:
+                    preco, variacao = 0.0, 0.0
+                resultado[simbolo] = {"preco": float(preco), "variacao": float(variacao)}
+            except Exception:
+                resultado[simbolo] = {"preco": 0.0, "variacao": 0.0}
+    except Exception:
+        for simbolo in simbolos:
+            resultado[simbolo] = {"preco": 0.0, "variacao": 0.0}
+    return resultado
+
+
+@st.cache_data(ttl=600)
+def get_historico(simbolo):
+    """Busca histórico de preços dos últimos 30 dias via yfinance."""
+    try:
+        ticker = yf.Ticker(simbolo + ".SA")
+        hist = ticker.history(period="30d")
+        if hist.empty:
+            return None
+        df = hist[["Close"]].rename(columns={"Close": "price"})
+        return df
+    except Exception:
+        return None
+
+
 # ─────────────────────────────────────────────
 # BUSCA DOS DADOS
 # ─────────────────────────────────────────────
 
-data = get_finance_data()
-
-if data is None:
-    st.warning("⚠️ Não foi possível carregar os dados. Verifique sua API Key no arquivo .env")
-    st.stop()
-
-ibov  = extrair_ibov(data)
-dolar = extrair_dolar(data)
-acoes_data = {simbolo: extrair_acao(data, simbolo) for simbolo in BLUE_CHIPS}
+ibov      = get_ibov()
+dolar     = get_dolar()
+acoes_data = get_acoes(BLUE_CHIPS)
 
 # ─────────────────────────────────────────────
 # MÉTRICAS PRINCIPAIS
@@ -283,4 +289,4 @@ if st.button("🔄 Atualizar Dados", type="primary", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-st.caption(f"Última atualização: {time.strftime('%d/%m/%Y %H:%M:%S')} · Dados: HG Brasil Finance API")
+st.caption(f"Última atualização: {time.strftime('%d/%m/%Y %H:%M:%S')} · Dados: Yahoo Finance + HG Brasil")
