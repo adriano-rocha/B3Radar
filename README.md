@@ -6,17 +6,18 @@ Dashboard interativo para acompanhamento de indicadores da Bolsa de Valores bras
 
 ## 🖥️ Demonstração
 
-> Exibe em tempo real: IBOVESPA, Dólar, e principais ações como PETR4, VALE3, ITUB4 e BBDC4 — com alertas de preço e exportação de dados.
+> Exibe em tempo real: IBOVESPA, Dólar, e 28 blue chips monitoradas — com alertas de preço, histórico de 30 dias e exportação de dados.
 
 ---
 
 ## 🚀 Funcionalidades
 
-- 📈 Cotações ao vivo de IBOV, Dólar, PETR4, VALE3, ITUB4 e BBDC4
+- 📈 Cotações ao vivo de IBOV, Dólar e 28 blue chips da B3
+- 🔥 Top 3 Altas e 📉 Top 3 Baixas do dia
+- 📊 Histórico de preço dos últimos 30 dias por ação
 - 🔔 Alertas configuráveis de preço por ação
 - 📥 Exportação de dados em `.csv` e `.txt`
 - 🔄 Atualização manual dos dados com limpeza de cache
-- 🔒 API Key protegida via variável de ambiente (`.env`)
 
 ---
 
@@ -26,10 +27,8 @@ Dashboard interativo para acompanhamento de indicadores da Bolsa de Valores bras
 |---|---|
 | [Python 3](https://python.org) | Linguagem principal |
 | [Streamlit](https://streamlit.io) | Interface web interativa |
-| [HG Brasil Finance API](https://hgbrasil.com/status/finance) | Dados de mercado em tempo real |
-| [Requests](https://pypi.org/project/requests/) | Requisições HTTP |
+| [yfinance](https://pypi.org/project/yfinance/) | Dados de mercado em tempo real (Yahoo Finance) |
 | [Pandas](https://pandas.pydata.org) | Manipulação de dados |
-| [python-dotenv](https://pypi.org/project/python-dotenv/) | Gerenciamento de variáveis de ambiente |
 
 ---
 
@@ -64,36 +63,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**4. Configure a API Key**
-
-Crie um arquivo `.env` na raiz do projeto:
-```
-HG_API_KEY=sua_chave_aqui
-```
-
-> 🔑 Obtenha sua chave gratuita em [hgbrasil.com/status/finance](https://hgbrasil.com/status/finance). Escolha a opção **"Chave para uso interno"**.
-
-**5. Execute o projeto**
+**4. Execute o projeto**
 ```bash
 streamlit run app.py
 ```
 
 Acesse em: `http://localhost:8501`
 
----
-
-## 🔐 Segurança
-
-A API Key **nunca** deve ser exposta publicamente. Este projeto utiliza um arquivo `.env` para protegê-la localmente.
-
-O arquivo `.gitignore` já está configurado para ignorar o `.env`:
-```
-.env
-venv/
-__pycache__/
-```
-
-> ⚠️ Nunca suba sua `.env` para o GitHub.
+> ✅ Não é necessária nenhuma API Key. Os dados são obtidos gratuitamente via Yahoo Finance (yfinance).
 
 ---
 
@@ -102,7 +79,6 @@ __pycache__/
 ```
 b3radar/
 ├── app.py              # Aplicação principal
-├── .env                # Variáveis de ambiente (não versionar)
 ├── .gitignore          # Arquivos ignorados pelo Git
 ├── requirements.txt    # Dependências do projeto
 └── README.md           # Este arquivo
@@ -114,10 +90,20 @@ b3radar/
 
 ```
 streamlit
-requests
 pandas
-python-dotenv
+yfinance
 ```
+
+---
+
+## 🌐 Deploy
+
+O projeto está publicado no Streamlit Cloud. Para fazer o seu próprio deploy:
+
+1. Suba o projeto para um repositório público no GitHub
+2. Acesse [share.streamlit.io](https://share.streamlit.io)
+3. Conecte o repositório e selecione o arquivo `app.py`
+4. Clique em **Deploy**
 
 ---
 
@@ -136,4 +122,4 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 ## 👤 Autor
 
 Feito por **Adriano Rocha**  
-[GitHub](https://github.com/adriano-rocha) · [LinkedIn](https://https://www.linkedin.com/in/adriano-rocha-464044305/)
+[GitHub](https://github.com/adriano-rocha) · [LinkedIn](https://www.linkedin.com/in/adriano-rocha-464044305/)

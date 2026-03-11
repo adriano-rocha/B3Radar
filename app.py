@@ -1,15 +1,7 @@
 import streamlit as st
-import requests
 import pandas as pd
 import yfinance as yf
 import time
-import os
-
-# Carrega a API Key (apenas para o Dólar via HG Brasil)
-try:
-    API_KEY = st.secrets.get("HG_API_KEY")
-except Exception:
-    API_KEY = os.environ.get("HG_API_KEY")
 
 st.set_page_config(page_title="B3Radar", page_icon="📡", layout="wide")
 st.title("📡 B3Radar — Dashboard B3")
@@ -23,7 +15,7 @@ BLUE_CHIPS = [
     "PETR4", "VALE3", "ITUB4", "BBDC4",
     "WEGE3", "MGLU3", "BBAS3", "ITSA4",
     "RENT3", "ABEV3", "ELET6", "SUZB3",
-    "RDOR3", "EQTL3", "HAPV3","BPAC11",
+    "RDOR3", "EQTL3", "HAPV3", "BPAC11",
     "RADL3", "VIVT3", "TOTS3", "PRIO3",
     "CSAN3", "EMBR3", "LREN3", "CCRO3",
     "SBSP3", "BBSE3", "JBSS3", "KLBN11"
@@ -44,29 +36,23 @@ def get_ibov():
         preco_atual = hist["Close"].iloc[-1]
         preco_anterior = hist["Close"].iloc[-2] if len(hist) > 1 else preco_atual
         variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
-        return {"preco": preco_atual, "variacao": variacao}
+        return {"preco": float(preco_atual), "variacao": float(variacao)}
     except Exception:
         return {"preco": 0.0, "variacao": 0.0}
 
 
 @st.cache_data(ttl=300)
 def get_dolar():
-    """Busca dados do Dólar via HG Brasil."""
+    """Busca dados do Dólar via yfinance."""
     try:
-        url = (
-            f"https://api.hgbrasil.com/finance"
-            f"?format=json"
-            f"&key={API_KEY}"
-            f"&fields=only_results"
-        )
-        resp = requests.get(url, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-        dolar = data["results"]["currencies"]["USD"]
-        return {
-            "preco": dolar["buy"],
-            "variacao": dolar["variation"],
-        }
+        ticker = yf.Ticker("USDBRL=X")
+        hist = ticker.history(period="2d")
+        if hist.empty:
+            return {"preco": 0.0, "variacao": 0.0}
+        preco_atual = hist["Close"].iloc[-1]
+        preco_anterior = hist["Close"].iloc[-2] if len(hist) > 1 else preco_atual
+        variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
+        return {"preco": float(preco_atual), "variacao": float(variacao)}
     except Exception:
         return {"preco": 0.0, "variacao": 0.0}
 
@@ -118,8 +104,8 @@ def get_historico(simbolo):
 # BUSCA DOS DADOS
 # ─────────────────────────────────────────────
 
-ibov      = get_ibov()
-dolar     = get_dolar()
+ibov       = get_ibov()
+dolar      = get_dolar()
 acoes_data = get_acoes(BLUE_CHIPS)
 
 # ─────────────────────────────────────────────
@@ -289,4 +275,4 @@ if st.button("🔄 Atualizar Dados", type="primary", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-st.caption(f"Última atualização: {time.strftime('%d/%m/%Y %H:%M:%S')} · Dados: Yahoo Finance + HG Brasil")
+st.caption(f"Última atualização: {time.strftime('%d/%m/%Y %H:%M:%S')} · Dados: Yahoo Finance")
