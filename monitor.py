@@ -10,9 +10,6 @@ from config import (
 
 INTERVALO_MINUTOS = 15
 
-# ─────────────────────────────────────────────
-# PALAVRAS-CHAVE DE NOTÍCIAS IMPACTANTES
-# ─────────────────────────────────────────────
 PALAVRAS_CHAVE = [
     "selic", "fed", "federal reserve", "juros", "inflação", "ipca",
     "crise", "recessão", "guerra", "sanção", "petróleo", "dólar",
@@ -20,22 +17,14 @@ PALAVRAS_CHAVE = [
     "default", "calote", "colapso", "emergência", "queda", "crash"
 ]
 
-# RSS feeds
 RSS_FEEDS = [
     "https://www.infomoney.com.br/feed/",
     "https://br.investing.com/rss/news.rss"
 ]
 
-# Controle de notícias já enviadas (evita repetição)
 noticias_enviadas = set()
 
-# Controle da última hora do resumo enviado
 ultima_hora_resumo = None
-
-
-# ─────────────────────────────────────────────
-# TELEGRAM
-# ─────────────────────────────────────────────
 
 def enviar_telegram(mensagem):
     """Envia mensagem pelo bot do Telegram."""
@@ -49,11 +38,6 @@ def enviar_telegram(mensagem):
         requests.post(url, data=payload, timeout=10)
     except Exception as e:
         print(f"Erro ao enviar Telegram: {e}")
-
-
-# ─────────────────────────────────────────────
-# FORMATAÇÃO DE SINAIS
-# ─────────────────────────────────────────────
 
 def formatar_sinal(ticker, sinal):
     """Formata mensagem de sinal de entrada — limpa e direta."""
@@ -79,11 +63,7 @@ def formatar_sinal(ticker, sinal):
 
     return msg
 
-
-# ─────────────────────────────────────────────
-# RESUMO HORÁRIO — IBOV E DÓLAR
-# ─────────────────────────────────────────────
-
+# Resumo IBOV por hora
 def get_ibov():
     try:
         import yfinance as yf
@@ -142,7 +122,6 @@ def verificar_resumo_horario():
     """Verifica se está na hora cheia e envia o resumo."""
     global ultima_hora_resumo
     agora = datetime.now()
-
     # Hora cheia dentro do pregão (11:00, 12:00... 17:00)
     if (agora.minute == 0
             and agora.hour >= 11
@@ -151,10 +130,7 @@ def verificar_resumo_horario():
         ultima_hora_resumo = agora.hour
         enviar_resumo_horario()
 
-
-# ─────────────────────────────────────────────
-# NOTÍCIAS IMPACTANTES VIA RSS
-# ─────────────────────────────────────────────
+# Noticias Impactantes
 
 def e_noticia_impactante(titulo):
     """Verifica se o título da notícia contém palavras-chave de impacto."""
@@ -193,10 +169,7 @@ def verificar_noticias():
             print(f"  Erro ao ler RSS {url_feed}: {e}")
 
 
-# ─────────────────────────────────────────────
-# PREGÃO E SINCRONIZAÇÃO
-# ─────────────────────────────────────────────
-
+ #Sinc do Pregão
 def dentro_do_pregao():
     agora = datetime.now().strftime("%H:%M")
     return HORA_INICIO <= agora <= HORA_FIM
@@ -227,11 +200,6 @@ def aguardar_proximo_candle():
     print(f"  ⏳ Próximo candle às {proximo.strftime('%H:%M')} — aguardando {minutos}min {segundos}s")
     time.sleep(espera)
 
-
-# ─────────────────────────────────────────────
-# LOOP PRINCIPAL
-# ─────────────────────────────────────────────
-
 def verificar_sinais():
     if not dentro_do_pregao():
         print(f"[{datetime.now().strftime('%H:%M')}] Fora do pregão. Aguardando...")
@@ -255,7 +223,6 @@ def verificar_sinais():
 
     # Verifica notícias impactantes
     verificar_noticias()
-
 
 def main():
     print("🚀 B3Radar Monitor iniciado!")

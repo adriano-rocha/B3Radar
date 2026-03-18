@@ -7,10 +7,6 @@ st.set_page_config(page_title="B3Radar", page_icon="📡", layout="wide")
 st.title("📡 B3Radar — Dashboard B3")
 st.markdown("---")
 
-# ─────────────────────────────────────────────
-# BLUE CHIPS MONITORADAS
-# ─────────────────────────────────────────────
-
 BLUE_CHIPS = [
     "PETR4", "VALE3", "ITUB4", "BBDC4",
     "WEGE3", "MGLU3", "BBAS3", "ITSA4",
@@ -21,10 +17,7 @@ BLUE_CHIPS = [
     "SBSP3", "BBSE3", "JBSS3", "KLBN11"
 ]
 
-# ─────────────────────────────────────────────
-# FUNÇÕES DE DADOS
-# ─────────────────────────────────────────────
-
+# funções dados
 @st.cache_data(ttl=300)
 def get_ibov():
     """Busca dados do IBOVESPA via yfinance."""
@@ -99,18 +92,13 @@ def get_historico(simbolo):
     except Exception:
         return None
 
-
-# ─────────────────────────────────────────────
 # BUSCA DOS DADOS
-# ─────────────────────────────────────────────
 
 ibov       = get_ibov()
 dolar      = get_dolar()
 acoes_data = get_acoes(BLUE_CHIPS)
 
-# ─────────────────────────────────────────────
 # MÉTRICAS PRINCIPAIS
-# ─────────────────────────────────────────────
 
 col1, col2 = st.columns(2)
 
@@ -129,9 +117,7 @@ with col2:
 
 st.markdown("---")
 
-# ─────────────────────────────────────────────
 # TABELA DE BLUE CHIPS
-# ─────────────────────────────────────────────
 
 st.subheader("📊 Blue Chips Monitoradas")
 
@@ -188,9 +174,7 @@ st.dataframe(
 
 st.markdown("---")
 
-# ─────────────────────────────────────────────
 # GRÁFICO DE HISTÓRICO
-# ─────────────────────────────────────────────
 
 st.subheader("📈 Histórico de Preço — Últimos 30 dias")
 
@@ -210,9 +194,7 @@ else:
 
 st.markdown("---")
 
-# ─────────────────────────────────────────────
 # ALERTAS DE PREÇO
-# ─────────────────────────────────────────────
 
 st.subheader("🔔 Alertas de Preço")
 
@@ -229,10 +211,6 @@ with col_a1:
             st.success(f"✅ {ticker_alerta} em R$ {preco_atual:.2f} — abaixo do alvo.")
 
 st.markdown("---")
-
-# ─────────────────────────────────────────────
-# EXPORTAR
-# ─────────────────────────────────────────────
 
 st.subheader("📥 Exportar Dados")
 
@@ -267,9 +245,7 @@ with col_e2:
 
 st.markdown("---")
 
-# ─────────────────────────────────────────────
-# ATUALIZAR
-# ─────────────────────────────────────────────
+# REFRESH
 
 if st.button("🔄 Atualizar Dados", type="primary", use_container_width=True):
     st.cache_data.clear()
