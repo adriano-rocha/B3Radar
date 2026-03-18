@@ -10,21 +10,104 @@ from config import (
 
 INTERVALO_MINUTOS = 15
 
-PALAVRAS_CHAVE = [
-    "selic", "fed", "federal reserve", "juros", "inflação", "ipca",
-    "crise", "recessão", "guerra", "sanção", "petróleo", "dólar",
-    "ibovespa", "bolsa", "pib", "desemprego", "copom", "banco central",
-    "default", "calote", "colapso", "emergência", "queda", "crash"
+# ─────────────────────────────────────────────
+# FILTRO PROFISSIONAL DE NOTÍCIAS POR CATEGORIA
+# ─────────────────────────────────────────────
+
+# 🥇 1. Dados macro dos EUA — maior impacto global
+PALAVRAS_EUA = [
+    "payroll", "nonfarm", "fed", "federal reserve", "fomc",
+    "juros eua", "taxa americana", "cpi eua", "inflação americana",
+    "pib eua", "recessão americana", "powell", "dados americanos",
+    "economia americana", "desemprego eua"
 ]
 
+# 🥈 2. Juros e inflação no Brasil
+PALAVRAS_BRASIL_MACRO = [
+    "selic", "copom", "banco central", "ipca", "inflação",
+    "juros brasil", "taxa básica", "meta de inflação",
+    "política monetária", "campos neto", "gabriel galípolo"
+]
+
+# 🥉 3. Commodities — petróleo e minério
+PALAVRAS_COMMODITIES = [
+    "petróleo", "brent", "wti", "crude", "petrobras",
+    "minério de ferro", "minério", "vale", "china minério",
+    "commodity", "commodities", "opep", "opec"
+]
+
+# 🏛️ 4. Política brasileira
+PALAVRAS_POLITICA = [
+    "lula", "governo federal", "reforma", "gastos públicos",
+    "arcabouço fiscal", "déficit", "superávit", "câmara",
+    "senado", "congresso", "ministério da fazenda", "haddad",
+    "impeachment", "crise política", "teto de gastos"
+]
+
+# 💰 5. Balanços e resultados de empresas monitoradas
+PALAVRAS_BALANCO = [
+    "resultado", "balanço", "lucro", "prejuízo", "receita",
+    "ebitda", "guidance", "dividendo", "petrobras resultado",
+    "vale resultado", "itaú resultado", "bradesco resultado",
+    "wege resultado", "mglu resultado", "bbas resultado"
+]
+
+# 🏦 6. Setor bancário e crédito
+PALAVRAS_BANCOS = [
+    "inadimplência", "crédito", "spread bancário",
+    "basileia", "provisão", "sistema financeiro",
+    "regulação bancária", "bc regulação"
+]
+
+# 🌍 7. China — impacto em commodities
+PALAVRAS_CHINA = [
+    "china", "crescimento chinês", "pib china", "estímulo chinês",
+    "demanda china", "economia china", "banco central chinês",
+    "pboc", "xi jinping economia"
+]
+
+# ⚡ 8. Eventos inesperados — volatilidade extrema
+PALAVRAS_EVENTOS = [
+    "guerra", "conflito", "crise", "crash", "colapso",
+    "emergência", "calote", "default", "sanção", "recessão",
+    "pandemia", "catástrofe", "explosão mercado"
+]
+
+# Palavras a IGNORAR — evita notícias irrelevantes
+PALAVRAS_IGNORAR = [
+    "suécia", "suíça", "japão", "coreia", "austrália",
+    "canadá", "méxico", "bolsa europeia", "ftse", "dax",
+    "nikkei", "esporte", "futebol", "celebridade", "entretenimento"
+]
+
+# Categorias com nome e lista de palavras
+CATEGORIAS = [
+    ("🥇 EUA/Macro Global", PALAVRAS_EUA),
+    ("🥈 Juros/Inflação Brasil", PALAVRAS_BRASIL_MACRO),
+    ("🥉 Commodities", PALAVRAS_COMMODITIES),
+    ("🏛️ Política Brasileira", PALAVRAS_POLITICA),
+    ("💰 Balanços/Resultados", PALAVRAS_BALANCO),
+    ("🏦 Setor Bancário", PALAVRAS_BANCOS),
+    ("🌍 China", PALAVRAS_CHINA),
+    ("⚡ Evento Inesperado", PALAVRAS_EVENTOS),
+]
+
+# RSS feeds
 RSS_FEEDS = [
     "https://www.infomoney.com.br/feed/",
     "https://br.investing.com/rss/news.rss"
 ]
 
+# Controle de notícias já enviadas (evita repetição)
 noticias_enviadas = set()
 
+# Controle da última hora do resumo enviado
 ultima_hora_resumo = None
+
+
+# ─────────────────────────────────────────────
+# TELEGRAM
+# ─────────────────────────────────────────────
 
 def enviar_telegram(mensagem):
     """Envia mensagem pelo bot do Telegram."""
@@ -38,6 +121,11 @@ def enviar_telegram(mensagem):
         requests.post(url, data=payload, timeout=10)
     except Exception as e:
         print(f"Erro ao enviar Telegram: {e}")
+
+
+# ─────────────────────────────────────────────
+# FORMATAÇÃO DE SINAIS
+# ─────────────────────────────────────────────
 
 def formatar_sinal(ticker, sinal):
     """Formata mensagem de sinal de entrada — limpa e direta."""
@@ -63,7 +151,11 @@ def formatar_sinal(ticker, sinal):
 
     return msg
 
-# Resumo IBOV por hora
+
+# ─────────────────────────────────────────────
+# RESUMO HORÁRIO — IBOV E DÓLAR
+# ─────────────────────────────────────────────
+
 def get_ibov():
     try:
         import yfinance as yf
@@ -122,7 +214,7 @@ def verificar_resumo_horario():
     """Verifica se está na hora cheia e envia o resumo."""
     global ultima_hora_resumo
     agora = datetime.now()
-    # Hora cheia dentro do pregão (11:00, 12:00... 17:00)
+
     if (agora.minute == 0
             and agora.hour >= 11
             and agora.hour <= 17
@@ -130,12 +222,28 @@ def verificar_resumo_horario():
         ultima_hora_resumo = agora.hour
         enviar_resumo_horario()
 
-# Noticias Impactantes
 
-def e_noticia_impactante(titulo):
-    """Verifica se o título da notícia contém palavras-chave de impacto."""
+# ─────────────────────────────────────────────
+# NOTÍCIAS IMPACTANTES VIA RSS
+# ─────────────────────────────────────────────
+
+def classificar_noticia(titulo):
+    """
+    Verifica se a notícia é relevante e retorna a categoria.
+    Retorna (True, categoria) ou (False, None).
+    """
     titulo_lower = titulo.lower()
-    return any(palavra in titulo_lower for palavra in PALAVRAS_CHAVE)
+
+    # Ignora notícias irrelevantes
+    if any(palavra in titulo_lower for palavra in PALAVRAS_IGNORAR):
+        return False, None
+
+    # Verifica em qual categoria se encaixa
+    for nome_categoria, palavras in CATEGORIAS:
+        if any(palavra in titulo_lower for palavra in palavras):
+            return True, nome_categoria
+
+    return False, None
 
 
 def verificar_noticias():
@@ -150,26 +258,32 @@ def verificar_noticias():
                 if titulo in noticias_enviadas:
                     continue
 
-                if e_noticia_impactante(titulo):
+                relevante, categoria = classificar_noticia(titulo)
+
+                if relevante:
                     noticias_enviadas.add(titulo)
                     fonte = "Infomoney" if "infomoney" in url_feed else "Investing.com"
 
                     msg = (
                         f"🚨 <b>NOTÍCIA IMPACTANTE</b>\n"
                         f"━━━━━━━━━━━━━━━━━━\n"
+                        f"{categoria}\n"
                         f"📰 {titulo}\n\n"
                         f"🔗 <a href='{link}'>Leia mais</a>\n"
                         f"📡 Fonte: {fonte}\n"
                         f"⏰ {datetime.now().strftime('%d/%m/%Y %H:%M')}"
                     )
                     enviar_telegram(msg)
-                    print(f"  🚨 Notícia enviada: {titulo[:60]}...")
+                    print(f"  🚨 [{categoria}]: {titulo[:60]}...")
 
         except Exception as e:
             print(f"  Erro ao ler RSS {url_feed}: {e}")
 
 
- #Sinc do Pregão
+# ─────────────────────────────────────────────
+# PREGÃO E SINCRONIZAÇÃO
+# ─────────────────────────────────────────────
+
 def dentro_do_pregao():
     agora = datetime.now().strftime("%H:%M")
     return HORA_INICIO <= agora <= HORA_FIM
@@ -200,6 +314,11 @@ def aguardar_proximo_candle():
     print(f"  ⏳ Próximo candle às {proximo.strftime('%H:%M')} — aguardando {minutos}min {segundos}s")
     time.sleep(espera)
 
+
+# ─────────────────────────────────────────────
+# LOOP PRINCIPAL
+# ─────────────────────────────────────────────
+
 def verificar_sinais():
     if not dentro_do_pregao():
         print(f"[{datetime.now().strftime('%H:%M')}] Fora do pregão. Aguardando...")
@@ -218,18 +337,16 @@ def verificar_sinais():
         else:
             print(f"  — {ticker}: sem sinais")
 
-    # Verifica resumo horário
     verificar_resumo_horario()
-
-    # Verifica notícias impactantes
     verificar_noticias()
+
 
 def main():
     print("🚀 B3Radar Monitor iniciado!")
     print(f"📋 Monitorando: {', '.join(TICKERS)}")
     print(f"⏱️  Timeframe: {INTERVALO} | Pregão B3: {HORA_INICIO} às {HORA_FIM}")
     print(f"🔎 Filtros: Tendência MM21 + Volume 1.5x")
-    print(f"📰 Notícias: Infomoney + Investing.com")
+    print(f"📰 Notícias: 8 categorias de impacto | Infomoney + Investing.com")
     print("─" * 40)
 
     enviar_telegram(
@@ -237,7 +354,7 @@ def main():
         f"📋 Monitorando: {', '.join(TICKERS)}\n"
         f"⏱️ Timeframe: {INTERVALO}\n"
         f"🔎 Filtros: Tendência MM21 + Volume 1.5x\n"
-        f"📰 Notícias em tempo real ativadas\n"
+        f"📰 Notícias filtradas por 8 categorias de impacto\n"
         f"🕐 Pregão B3: {HORA_INICIO} às {HORA_FIM}"
     )
 
