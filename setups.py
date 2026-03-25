@@ -5,14 +5,17 @@ from config import (
     JANELA_SR, MM_TENDENCIA, VOLUME_FATOR, VOLUME_JANELA
 )
 
+# timeframe de execução
+INTERVALO_EXECUCAO = "5m"
 
-def get_dados(ticker):
-    """Baixa dados do ticker via yfinance."""
+# DADOS
+
+def get_dados(ticker, intervalo=INTERVALO):
     try:
         df = yf.download(
             ticker + ".SA",
             period=PERIODO,
-            interval=INTERVALO,
+            interval=intervalo,
             progress=False,
             auto_adjust=True
         )
@@ -23,171 +26,183 @@ def get_dados(ticker):
     except Exception:
         return None
 
+# FILTROS PROFISSIONAIS
 
 def filtro_tendencia(df):
-    """
-    Retorna 'ALTA' se preço atual está acima da MM de tendência,
-    'BAIXA' se está abaixo.
-    """
     try:
         mm = SMAIndicator(df["Close"], window=MM_TENDENCIA).sma_indicator()
-        preco_atual = df["Close"].iloc[-1]
-        mm_atual    = mm.iloc[-1]
+        preco = df["Close"].iloc[-1]
+        mm_atual = mm.iloc[-1]
 
-        if preco_atual > mm_atual:
-            return "ALTA"
-        else:
-            return "BAIXA"
-    except Exception:
+        return "ALTA" if preco > mm_atual else "BAIXA"
+    except:
         return None
 
 
 def filtro_volume(df):
-    """
-    Retorna True se o volume do candle atual é >= VOLUME_FATOR x média dos últimos N candles.
-    """
     try:
-        volume_atual  = df["Volume"].iloc[-1]
-        media_volume  = df["Volume"].iloc[-VOLUME_JANELA-1:-1].mean()
-        return float(volume_atual) >= VOLUME_FATOR * float(media_volume)
-    except Exception:
+        vol = df["Volume"].iloc[-1]
+        media = df["Volume"].iloc[-VOLUME_JANELA-1:-1].mean()
+        return float(vol) >= VOLUME_FATOR * float(media)
+    except:
         return False
 
 
+# volume direcional
+def volume_direcional(df):
+    candle = df.iloc[-1]
+    return "COMPRA" if candle["Close"] > candle["Open"] else "VENDA"
+
+
+# distância da média (ANTI ESTICADO)
+def filtro_distancia_media(df):
+    try:
+        mm9 = SMAIndicator(df["Close"], window=MM_RAPIDA).sma_indicator()
+        preco = df["Close"].iloc[-1]
+        mm_atual = mm9.iloc[-1]
+
+        distancia = abs(preco - mm_atual) / mm_atual
+
+        return distancia < 0.01  # 1%
+    except:
+        return False
+
+
+# confirmação no timeframe menor
+def confirmar_entrada(ticker, direcao):
+    df = get_dados(ticker, INTERVALO_EXECUCAO)
+    if df is None or len(df) < 5:
+        return False
+
+    ultimo = df.iloc[-1]
+    anterior = df.iloc[-2]
+
+    if direcao == "COMPRA":
+        return ultimo["Close"] > anterior["High"]
+
+    if direcao == "VENDA":
+        return ultimo["Close"] < anterior["Low"]
+
+    return False
+
+# SETUPS
+
 def setup_92(df, tendencia):
-    """
-    Setup 9.2 — Candle fecha acima da MM9 após ficar abaixo (compra)
-    ou fecha abaixo da MM9 após ficar acima (venda).
-    Filtrado pela tendência: só COMPRA em alta, só VENDA em baixa.
-    """
     try:
         mm9 = SMAIndicator(df["Close"], window=MM_RAPIDA).sma_indicator()
 
-        fechamento_atual    = df["Close"].iloc[-1]
-        fechamento_anterior = df["Close"].iloc[-2]
-        mm9_atual           = mm9.iloc[-1]
-        mm9_anterior        = mm9.iloc[-2]
+        f_atual = df["Close"].iloc[-1]
+        f_ant = df["Close"].iloc[-2]
+        mm_atual = mm9.iloc[-1]
+        mm_ant = mm9.iloc[-2]
 
-        if (tendencia == "ALTA"
-                and fechamento_anterior < mm9_anterior
-                and fechamento_atual > mm9_atual):
+        if tendencia == "ALTA" and f_ant < mm_ant and f_atual > mm_atual:
             return "COMPRA"
 
-        if (tendencia == "BAIXA"
-                and fechamento_anterior > mm9_anterior
-                and fechamento_atual < mm9_atual):
+        if tendencia == "BAIXA" and f_ant > mm_ant and f_atual < mm_atual:
             return "VENDA"
 
         return None
-    except Exception:
+    except:
         return None
 
 
 def cruzamento_medias(df, tendencia):
-    """
-    Cruzamento MM9 x MM21.
-    Só COMPRA em tendência de alta, só VENDA em tendência de baixa.
-    """
     try:
-        mm9  = SMAIndicator(df["Close"], window=MM_RAPIDA).sma_indicator()
+        mm9 = SMAIndicator(df["Close"], window=MM_RAPIDA).sma_indicator()
         mm21 = SMAIndicator(df["Close"], window=MM_LENTA).sma_indicator()
 
-        if (tendencia == "ALTA"
-                and mm9.iloc[-2] < mm21.iloc[-2]
-                and mm9.iloc[-1] > mm21.iloc[-1]):
+        if tendencia == "ALTA" and mm9.iloc[-2] < mm21.iloc[-2] and mm9.iloc[-1] > mm21.iloc[-1]:
             return "COMPRA"
 
-        if (tendencia == "BAIXA"
-                and mm9.iloc[-2] > mm21.iloc[-2]
-                and mm9.iloc[-1] < mm21.iloc[-1]):
+        if tendencia == "BAIXA" and mm9.iloc[-2] > mm21.iloc[-2] and mm9.iloc[-1] < mm21.iloc[-1]:
             return "VENDA"
 
         return None
-    except Exception:
+    except:
         return None
 
 
 def rompimento_sr(df, tendencia):
-    """
-    Rompimento de suporte/resistência filtrado pela tendência.
-    """
     try:
         janela = df.iloc[-JANELA_SR-1:-1]
 
         resistencia = janela["High"].max()
-        suporte     = janela["Low"].min()
+        suporte = janela["Low"].min()
 
-        fechamento_atual    = df["Close"].iloc[-1]
-        fechamento_anterior = df["Close"].iloc[-2]
+        f_atual = df["Close"].iloc[-1]
+        f_ant = df["Close"].iloc[-2]
 
-        if (tendencia == "ALTA"
-                and fechamento_anterior <= resistencia
-                and fechamento_atual > resistencia):
+        if tendencia == "ALTA" and f_ant <= resistencia and f_atual > resistencia:
             return "COMPRA", round(float(resistencia), 2)
 
-        if (tendencia == "BAIXA"
-                and fechamento_anterior >= suporte
-                and fechamento_atual < suporte):
+        if tendencia == "BAIXA" and f_ant >= suporte and f_atual < suporte:
             return "VENDA", round(float(suporte), 2)
 
         return None, None
-    except Exception:
+    except:
         return None, None
 
+# SCORE (QUALIDADE DO SINAL)
+
+def calcular_score(volume_ok, direcao_volume, direcao_sinal, distancia_ok):
+    score = 0
+
+    if volume_ok:
+        score += 1
+
+    if direcao_volume == direcao_sinal:
+        score += 1
+
+    if distancia_ok:
+        score += 1
+
+    return score
+
+# MAIN
 
 def analisar(ticker):
-    """
-    Analisa o ticker e retorna lista de sinais encontrados.
-    Aplica filtros de tendência e volume antes de confirmar o sinal.
-    """
     df = get_dados(ticker)
     if df is None or len(df) < 30:
         return []
 
-    # ── Filtros globais ──────────────────────
     tendencia = filtro_tendencia(df)
     if tendencia is None:
         return []
 
     volume_ok = filtro_volume(df)
-    if not volume_ok:
-        return []
-    # ────────────────────────────────────────
+    direcao_volume = volume_direcional(df)
+    distancia_ok = filtro_distancia_media(df)
 
-    preco_atual = round(float(df["Close"].iloc[-1]), 2)
+    preco = round(float(df["Close"].iloc[-1]), 2)
     sinais = []
 
-    # Setup 9.2
-    resultado_92 = setup_92(df, tendencia)
-    if resultado_92:
-        sinais.append({
-            "setup":    "Setup 9.2",
-            "direcao":  resultado_92,
-            "preco":    preco_atual,
-            "nivel":    None,
-            "tendencia": tendencia
-        })
+    # ── SETUP 9.2 ──
+    direcao = setup_92(df, tendencia)
+    if direcao:
+        score = calcular_score(volume_ok, direcao_volume, direcao, distancia_ok)
 
-    # Cruzamento de médias
-    resultado_mm = cruzamento_medias(df, tendencia)
-    if resultado_mm:
-        sinais.append({
-            "setup":    "Cruzamento MM9 x MM21",
-            "direcao":  resultado_mm,
-            "preco":    preco_atual,
-            "nivel":    None,
-            "tendencia": tendencia
-        })
+        if score >= 2 and confirmar_entrada(ticker, direcao):
+            sinais.append({
+                "setup": "Setup 9.2",
+                "direcao": direcao,
+                "preco": preco,
+                "nivel": None,
+                "tendencia": tendencia
+            })
 
-    # Rompimento S/R
-    resultado_sr, nivel = rompimento_sr(df, tendencia)
-    if resultado_sr:
-        sinais.append({
-            "setup":    "Rompimento de Suporte/Resistência",
-            "direcao":  resultado_sr,
-            "preco":    preco_atual,
-            "nivel":    nivel,
-            "tendencia": tendencia
-        })
+    # ── ROMPIMENTO ──
+    direcao, nivel = rompimento_sr(df, tendencia)
+    if direcao:
+        score = calcular_score(volume_ok, direcao_volume, direcao, distancia_ok)
+
+        if score >= 2 and confirmar_entrada(ticker, direcao):
+            sinais.append({
+                "setup": "Rompimento S/R",
+                "direcao": direcao,
+                "preco": preco,
+                "nivel": nivel,
+                "tendencia": tendencia
+            })
 
     return sinais

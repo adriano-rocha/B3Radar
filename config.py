@@ -1,26 +1,41 @@
-TELEGRAM_TOKEN   = "8726086318:AAHddpAwY-RPJwXak8N6UxQfcy9IZYFURmA"
-TELEGRAM_CHAT_ID = "8233791045"
+TELEGRAM_TOKEN   = "SEU_TOKEN"
+TELEGRAM_CHAT_ID = "SEU_CHAT_ID"
 
-TICKERS = ["PETR4", "VALE3", "ITUB4", "BBDC4", "WEGE3", "BBAS3"]
+# Ativos com melhor comportamento técnico
+TICKERS = ["PETR4", "VALE3", "ITUB4", "BBDC4", "BBAS3"]
 
+# Timeframe principal (contexto)
 INTERVALO = "15m"
 
 PERIODO = "5d"
 
-# Parâmetros dos setups
-MM_RAPIDA        = 9     
-MM_LENTA         = 21    
-JANELA_SR        = 20    # Janela para suporte/resistência
+# MÉDIAS
 
-# Filtro de tendência
-MM_TENDENCIA     = 21    # Preço acima → tendência de alta → só COMPRA
-                         # Preço abaixo → tendência de baixa → só VENDA
+MM_RAPIDA    = 9
+MM_LENTA     = 21
+MM_TENDENCIA = 21
 
-# Filtro de volume
-VOLUME_FATOR     = 1.5   # Volume atual deve ser X vezes a média
-VOLUME_JANELA    = 20    # Média de quantos candles para comparar
+# SUPORTE / RESISTÊNCIA
+JANELA_SR = 20
 
-HORA_INICIO = "10:00"
-HORA_FIM    = "17:55"
+# VOLUME
 
-MINUTO_ABERTURA = 0  
+# mais seletivo (antes 1.5)
+VOLUME_FATOR  = 1.8
+VOLUME_JANELA = 20
+
+# HORÁRIO
+
+# evita abertura caótica
+HORA_INICIO = "10:05"
+
+# evita final sem liquidez
+HORA_FIM = "16:30"
+
+# CONTROLE DE QUALIDADE
+
+# distância máxima da MM9 (1%)
+DISTANCIA_MAX = 0.01
+
+# score mínimo (se quiser usar depois)
+SCORE_MINIMO = 2
