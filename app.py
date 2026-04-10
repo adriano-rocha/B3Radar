@@ -7,14 +7,46 @@ st.set_page_config(page_title="B3Radar", page_icon="📡", layout="wide")
 st.title("📡 B3Radar — Dashboard B3")
 st.markdown("---")
 
+# Carteira Ibovespa — 85 ativos (carteira vigente jan/2026)
 BLUE_CHIPS = [
-    "PETR4", "VALE3", "ITUB4", "BBDC4",
-    "WEGE3", "MGLU3", "BBAS3", "ITSA4",
-    "RENT3", "ABEV3", "ELET6", "SUZB3",
-    "RDOR3", "EQTL3", "HAPV3", "BPAC11",
-    "RADL3", "VIVT3", "TOTS3", "PRIO3",
-    "CSAN3", "EMBR3", "LREN3", "CCRO3",
-    "SBSP3", "BBSE3", "JBSS3", "KLBN11"
+    # Petróleo & Energia
+    "PETR3", "PETR4", "PRIO3", "RECV3", "BRAV3", "VBBR3",
+    # Mineração & Siderurgia
+    "VALE3", "CSNA3", "CMIN3", "GGBR4", "GOAU4", "USIM5",
+    # Bancos & Financeiro
+    "ITUB4", "BBDC3", "BBDC4", "BBAS3", "SANB11", "BPAC11",
+    "ITSA4", "BBSE3", "CXSE3", "IRBR3", "PSSA3",
+    # Energia Elétrica
+    "ELET3", "ELET6", "EQTL3", "EGIE3", "CMIG4", "CPFE3",
+    "CPLE6", "ENEV3", "AURE3",
+    # Telecomunicações
+    "VIVT3", "TIMS3",
+    # Consumo & Varejo
+    "ABEV3", "LREN3", "MGLU3", "AZZA3", "SOMA3", "CEAB3",
+    "PCAR3", "ASAI3", "VIVA3",
+    # Construção Civil
+    "MRVE3", "CYRE3", "DIRR3", "CURY3",
+    # Saúde
+    "HAPV3", "RDOR3", "FLRY3", "RADL3", "HYPE3",
+    # Educação
+    "YDUQ3", "COGN3",
+    # Papel & Celulose
+    "SUZB3", "KLBN11",
+    # Logística & Infraestrutura
+    "RUMO3", "CCRO3", "RAIL3",
+    # Agronegócio
+    "SLCE3",
+    # Indústria & Outros
+    "WEGE3", "EMBR3", "TOTS3", "POMO4",
+    # Imóveis & Shopping
+    "MULT3", "ALLOS3", "IGTI11",
+    # Saneamento
+    "SBSP3",
+    # Petroquímica
+    "BRKM5",
+    # Diversificado
+    "UGPA3", "RAIZ4", "CSAN3", "MRFG3", "BEEF3",
+    "NTCO3", "SMFT3", "TAEE11", "TRPL4", "RANI3",
 ]
 
 # funções dados
@@ -117,9 +149,9 @@ with col2:
 
 st.markdown("---")
 
-# TABELA DE BLUE CHIPS
+# TABELA DE AÇÕES
 
-st.subheader("📊 Blue Chips Monitoradas")
+st.subheader("📊 Ações do Ibovespa Monitoradas")
 
 acoes_lista = [
     {
