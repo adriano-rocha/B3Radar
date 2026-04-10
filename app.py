@@ -7,7 +7,7 @@ st.set_page_config(page_title="B3Radar", page_icon="📡", layout="wide")
 st.title("📡 B3Radar — Dashboard B3")
 st.markdown("---")
 
-# Carteira Ibovespa — 85 ativos (carteira vigente jan/2026)
+# Carteira Ibovespa — tickers validados (abr/2026)
 BLUE_CHIPS = [
     # Petróleo & Energia
     "PETR3", "PETR4", "PRIO3", "RECV3", "BRAV3", "VBBR3",
@@ -17,12 +17,12 @@ BLUE_CHIPS = [
     "ITUB4", "BBDC3", "BBDC4", "BBAS3", "SANB11", "BPAC11",
     "ITSA4", "BBSE3", "CXSE3", "IRBR3", "PSSA3",
     # Energia Elétrica
-    "ELET3", "ELET6", "EQTL3", "EGIE3", "CMIG4", "CPFE3",
-    "CPLE6", "ENEV3", "AURE3",
+    "AXIA3", "AXIA6", "EQTL3", "EGIE3", "CMIG4", "CPFE3",
+    "CPLE3", "ENEV3", "AURE3",
     # Telecomunicações
     "VIVT3", "TIMS3",
     # Consumo & Varejo
-    "ABEV3", "LREN3", "MGLU3", "AZZA3", "SOMA3", "CEAB3",
+    "ABEV3", "LREN3", "MGLU3", "AZZA3", "CEAB3",
     "PCAR3", "ASAI3", "VIVA3",
     # Construção Civil
     "MRVE3", "CYRE3", "DIRR3", "CURY3",
@@ -33,32 +33,34 @@ BLUE_CHIPS = [
     # Papel & Celulose
     "SUZB3", "KLBN11",
     # Logística & Infraestrutura
-    "RUMO3", "CCRO3", "RAIL3",
+    "RAIL3", "MOVI3",
     # Agronegócio
     "SLCE3",
     # Indústria & Outros
-    "WEGE3", "EMBR3", "TOTS3", "POMO4",
+    "WEGE3", "TOTS3", "POMO4",
     # Imóveis & Shopping
-    "MULT3", "ALLOS3", "IGTI11",
+    "MULT3", "IGTI11",
     # Saneamento
     "SBSP3",
     # Petroquímica
     "BRKM5",
     # Diversificado
-    "UGPA3", "RAIZ4", "CSAN3", "MRFG3", "BEEF3",
-    "NTCO3", "SMFT3", "TAEE11", "TRPL4", "RANI3",
+    "UGPA3", "RAIZ4", "CSAN3", "BEEF3",
+    "SMFT3", "TAEE11", "ISAE4", "RANI3",
+    # B3 e outros
+    "B3SA3",
 ]
 
-# funções dados
+# ── FUNÇÕES DE DADOS ──────────────────────────────────────────────────────────
+
 @st.cache_data(ttl=300)
 def get_ibov():
-    """Busca dados do IBOVESPA via yfinance."""
     try:
         ticker = yf.Ticker("^BVSP")
         hist = ticker.history(period="2d")
         if hist.empty:
             return {"preco": 0.0, "variacao": 0.0}
-        preco_atual = hist["Close"].iloc[-1]
+        preco_atual    = hist["Close"].iloc[-1]
         preco_anterior = hist["Close"].iloc[-2] if len(hist) > 1 else preco_atual
         variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
         return {"preco": float(preco_atual), "variacao": float(variacao)}
@@ -68,13 +70,12 @@ def get_ibov():
 
 @st.cache_data(ttl=300)
 def get_dolar():
-    """Busca dados do Dólar via yfinance."""
     try:
         ticker = yf.Ticker("USDBRL=X")
         hist = ticker.history(period="2d")
         if hist.empty:
             return {"preco": 0.0, "variacao": 0.0}
-        preco_atual = hist["Close"].iloc[-1]
+        preco_atual    = hist["Close"].iloc[-1]
         preco_anterior = hist["Close"].iloc[-2] if len(hist) > 1 else preco_atual
         variacao = ((preco_atual - preco_anterior) / preco_anterior) * 100
         return {"preco": float(preco_atual), "variacao": float(variacao)}
@@ -84,7 +85,6 @@ def get_dolar():
 
 @st.cache_data(ttl=300)
 def get_acoes(simbolos):
-    """Busca preço e variação das ações via yfinance."""
     tickers = [s + ".SA" for s in simbolos]
     resultado = {}
     try:
@@ -94,11 +94,11 @@ def get_acoes(simbolos):
             try:
                 serie = close[ticker].dropna()
                 if len(serie) >= 2:
-                    preco = serie.iloc[-1]
+                    preco    = serie.iloc[-1]
                     anterior = serie.iloc[-2]
                     variacao = ((preco - anterior) / anterior) * 100
                 elif len(serie) == 1:
-                    preco = serie.iloc[-1]
+                    preco    = serie.iloc[-1]
                     variacao = 0.0
                 else:
                     preco, variacao = 0.0, 0.0
@@ -113,62 +113,50 @@ def get_acoes(simbolos):
 
 @st.cache_data(ttl=600)
 def get_historico(simbolo):
-    """Busca histórico de preços dos últimos 30 dias via yfinance."""
     try:
         ticker = yf.Ticker(simbolo + ".SA")
-        hist = ticker.history(period="30d")
+        hist   = ticker.history(period="30d")
         if hist.empty:
             return None
-        df = hist[["Close"]].rename(columns={"Close": "price"})
-        return df
+        return hist[["Close"]].rename(columns={"Close": "price"})
     except Exception:
         return None
 
-# BUSCA DOS DADOS
+
+# ── BUSCA DOS DADOS ───────────────────────────────────────────────────────────
 
 ibov       = get_ibov()
 dolar      = get_dolar()
 acoes_data = get_acoes(BLUE_CHIPS)
 
-# MÉTRICAS PRINCIPAIS
+# ── MÉTRICAS PRINCIPAIS ───────────────────────────────────────────────────────
 
 col1, col2 = st.columns(2)
-
 with col1:
-    st.metric(
-        "📈 IBOVESPA",
-        f"{ibov['preco']:,.0f} pts",
-        f"{ibov['variacao']:+.2f}%"
-    )
+    st.metric("📈 IBOVESPA", f"{ibov['preco']:,.0f} pts", f"{ibov['variacao']:+.2f}%")
 with col2:
-    st.metric(
-        "💵 DÓLAR",
-        f"R$ {dolar['preco']:.2f}",
-        f"{dolar['variacao']:+.2f}%"
-    )
+    st.metric("💵 DÓLAR", f"R$ {dolar['preco']:.2f}", f"{dolar['variacao']:+.2f}%")
 
 st.markdown("---")
 
-# TABELA DE AÇÕES
+# ── TABELA DE AÇÕES ───────────────────────────────────────────────────────────
 
 st.subheader("📊 Ações do Ibovespa Monitoradas")
 
 acoes_lista = [
     {
-        "Ticker": simbolo,
-        "Preço (R$)": acoes_data[simbolo]["preco"],
+        "Ticker":       simbolo,
+        "Preço (R$)":   acoes_data[simbolo]["preco"],
         "Variação (%)": acoes_data[simbolo]["variacao"],
     }
     for simbolo in BLUE_CHIPS
 ]
-
 acoes_df = pd.DataFrame(acoes_lista)
 
-top_altas  = acoes_df.nlargest(3, "Variação (%)")
+top_altas  = acoes_df.nlargest(3,  "Variação (%)")
 top_baixas = acoes_df.nsmallest(3, "Variação (%)")
 
 col_t1, col_t2 = st.columns(2)
-
 with col_t1:
     st.markdown("#### 🔥 Top 3 Altas")
     st.dataframe(
@@ -177,10 +165,8 @@ with col_t1:
             "Preço (R$)":   st.column_config.NumberColumn(format="R$ %.2f"),
             "Variação (%)": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
-        hide_index=True,
+        use_container_width=True, hide_index=True,
     )
-
 with col_t2:
     st.markdown("#### 📉 Top 3 Baixas")
     st.dataframe(
@@ -189,8 +175,7 @@ with col_t2:
             "Preço (R$)":   st.column_config.NumberColumn(format="R$ %.2f"),
             "Variação (%)": st.column_config.NumberColumn(format="%.2f%%"),
         },
-        use_container_width=True,
-        hide_index=True,
+        use_container_width=True, hide_index=True,
     )
 
 st.markdown("#### 📋 Todas as Ações")
@@ -200,21 +185,16 @@ st.dataframe(
         "Preço (R$)":   st.column_config.NumberColumn(format="R$ %.2f"),
         "Variação (%)": st.column_config.NumberColumn(format="%.2f%%"),
     },
-    use_container_width=True,
-    hide_index=True,
+    use_container_width=True, hide_index=True,
 )
 
 st.markdown("---")
 
-# GRÁFICO DE HISTÓRICO
+# ── GRÁFICO DE HISTÓRICO ──────────────────────────────────────────────────────
 
 st.subheader("📈 Histórico de Preço — Últimos 30 dias")
 
-acao_selecionada = st.selectbox(
-    "Selecione uma ação:",
-    options=BLUE_CHIPS,
-    index=0
-)
+acao_selecionada = st.selectbox("Selecione uma ação:", options=BLUE_CHIPS, index=0)
 
 with st.spinner(f"Carregando histórico de {acao_selecionada}..."):
     historico = get_historico(acao_selecionada)
@@ -226,16 +206,15 @@ else:
 
 st.markdown("---")
 
-# ALERTAS DE PREÇO
+# ── ALERTAS DE PREÇO ──────────────────────────────────────────────────────────
 
 st.subheader("🔔 Alertas de Preço")
 
-col_a1, col_a2 = st.columns(2)
-
+col_a1, _ = st.columns(2)
 with col_a1:
     ticker_alerta = st.selectbox("Ação", options=BLUE_CHIPS, key="alerta_ticker")
-    alvo = st.number_input("Alertar acima de R$", value=0.0, step=0.5)
-    preco_atual = acoes_data[ticker_alerta]["preco"]
+    alvo          = st.number_input("Alertar acima de R$", value=0.0, step=0.5)
+    preco_atual   = acoes_data[ticker_alerta]["preco"]
     if alvo > 0:
         if preco_atual > alvo:
             st.error(f"🚨 {ticker_alerta} em R$ {preco_atual:.2f} — ACIMA DO ALVO!")
@@ -244,10 +223,11 @@ with col_a1:
 
 st.markdown("---")
 
+# ── EXPORTAR DADOS ────────────────────────────────────────────────────────────
+
 st.subheader("📥 Exportar Dados")
 
 col_e1, col_e2 = st.columns(2)
-
 with col_e1:
     st.download_button(
         label="📈 Baixar CSV",
@@ -256,7 +236,6 @@ with col_e1:
         mime="text/csv",
         use_container_width=True,
     )
-
 with col_e2:
     resumo = (
         f"B3Radar — {time.strftime('%d/%m/%Y %H:%M')}\n"
@@ -277,7 +256,7 @@ with col_e2:
 
 st.markdown("---")
 
-# REFRESH
+# ── REFRESH ───────────────────────────────────────────────────────────────────
 
 if st.button("🔄 Atualizar Dados", type="primary", use_container_width=True):
     st.cache_data.clear()
