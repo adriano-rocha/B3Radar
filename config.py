@@ -1,17 +1,6 @@
 TELEGRAM_TOKEN   = "SEU_TOKEN"
 TELEGRAM_CHAT_ID = "SEU_CHAT_ID"
 
-# Carteira Ibovespa — tickers validados no yfinance (abr/2026)
-# Tickers corrigidos:
-#   ELET3/ELET6 → AXIA3/AXIA6  (Eletrobras rebrandeou para Axia Energia em nov/2025)
-#   RUMO3       → RAIL3         (mudança antiga, yfinance só reconhece RAIL3)
-#   CCRO3       → MOVI3         (CCR rebrandeou para Motiva)
-#   SOMA3       → removido      (fundiu com Arezzo, virou AZZA3 — já está na lista)
-#   ALLOS3      → ALSO3         (yfinance não reconhece ALLOS3)
-#   MRFG3       → removido      (fusão com BRF, usar BEEF3 que já está na lista)
-#   CPLE6       → CPLE3         (yfinance não encontra CPLE6)
-#   TRPL4       → ISAE4         (ISA Energia rebrandeou)
-
 TICKERS = [
     # Petróleo & Energia
     "PETR3", "PETR4", "PRIO3", "RECV3", "BRAV3", "VBBR3",
@@ -41,40 +30,44 @@ TICKERS = [
     # Agronegócio
     "SLCE3",
     # Indústria & Outros
-    "WEGE3", "EMBR3", "TOTS3", "POMO4",
+    "WEGE3", "TOTS3", "POMO4",
+    # "EMBR3",   # ⚠️ Indisponível no Yahoo Finance (abr/2026)
     # Imóveis & Shopping
-    "MULT3", "ALSO3", "IGTI11",
+    "MULT3", "IGTI11",
+    # "ALSO3",   # ⚠️ Ticker incorreto — ALLOS3 também falha no yfinance
     # Saneamento
     "SBSP3",
     # Petroquímica
     "BRKM5",
     # Diversificado
     "UGPA3", "RAIZ4", "CSAN3", "BEEF3",
-    "NTCO3", "SMFT3", "TAEE11", "ISAE4", "RANI3",
+    # "NTCO3",   # ⚠️ Indisponível — Natura&Co em reestruturação
+    "SMFT3", "TAEE11", "ISAE4", "RANI3",
     # B3 e outros
-    "B3SA3", "JBSS3",
+    "B3SA3",
+    # "JBSS3",   # ⚠️ Temporariamente indisponível no Yahoo Finance
 ]
 
-# Timeframe principal (contexto)
+# ── Timeframe principal ────────────────────────────────────────────────────────
 INTERVALO = "15m"
 PERIODO   = "5d"
 
-# MÉDIAS
+# ── Médias Móveis ──────────────────────────────────────────────────────────────
 MM_RAPIDA    = 9
 MM_LENTA     = 21
 MM_TENDENCIA = 21
 
-# SUPORTE / RESISTÊNCIA
+# ── Suporte / Resistência ──────────────────────────────────────────────────────
 JANELA_SR = 20
 
-# VOLUME
+# ── Volume ─────────────────────────────────────────────────────────────────────
 VOLUME_FATOR  = 1.8
 VOLUME_JANELA = 20
 
-# HORÁRIO
+# ── Horário de operação ────────────────────────────────────────────────────────
 HORA_INICIO = "10:05"
 HORA_FIM    = "16:30"
 
-# CONTROLE DE QUALIDADE
+# ── Controle de qualidade ──────────────────────────────────────────────────────
 DISTANCIA_MAX = 0.01
 SCORE_MINIMO  = 2
